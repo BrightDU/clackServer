@@ -1,0 +1,199 @@
+<html>
+    <head>
+        <title id="title">Welcome To Clack</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <style>
+            body {
+                margin-top: 30px;
+            }  
+
+            #messageArea {
+                display: none;
+            }  
+
+            .well {
+                background-color :aqua;
+            }
+
+             .well h3 {
+               color: white;
+            }
+
+            .list-group-item:hover {
+                background-color: aquamarine;
+            }
+
+            .error {
+                color: red;
+            }
+
+            .whisper {
+                color: blue;
+                font-style: italic;
+            }
+
+            .exits {
+                color: red;
+                text-transform: capitalize;
+                font-style: italic;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div>
+                <h1>General Messaging</h1>
+            </div>
+            <div id="userFormArea" class="row">
+                <div class="col-md-12">
+                    <form id="userForm">
+                        <div class="form-group">
+                            <label>Enter Username</label>
+                            <input class="form-control" id="username"/>
+                            <br />
+                            <input type="submit" class="btn btn-primary" value="Login"/>
+                        </div>
+                    </form> 
+                </div>
+            </div>
+            <div id="messageArea" class="row">
+                <div class="col-md-4">
+                    <div class="well">
+                        <h3>Online Users</h3>
+                        <ul class="list-group" id="users"></ul>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="chat" id="PublicChat">Public Chat</div>
+                    <div class="chat" id="PrivateChat">Private Chat</div>
+                    <div id="exits"></div>
+                    <form id="messageForm">
+                        <div class="form-group">
+                            <label>Enter Messages</label>
+                            <textarea class="form-control" id="message">
+
+                            </textarea>
+                            <br />
+                            <input type="submit" class="btn btn-primary" value="Send Message"/>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <script>
+
+              // <![CDATA[
+                     function openWindow(url,width,height,options,name) {
+                        width = width ? width : 266;
+                        height = height ? height : 300;
+                        options = options ? options : 'resizable=no';
+                        name = name ? name : 'openWindow';
+                        window.open(
+                            url,
+                            name,
+                            'screenX='+(screen.width-width)/2+',screenY='+(screen.height-height)/2+',width='+width+',height='+height+','+options
+                        )
+                    }
+                // ]]>
+
+
+            $(function() {
+                var socket = io.connect();//creates a socket connection using the connect()
+                var $messageForm =  $('#messageForm');
+                var $message = $('#message');
+                var $PubChat = $('#PublicChat');
+                var $PriChat = $('#PrivateChat'); 
+                var $messageArea = $('#messageArea');
+                var $userFormArea = $('#userFormArea');
+                var $userForm = $('#userForm');
+                var $users = $('#users');//list of logged In users
+                var $username = $('#username');
+                var $title = $('#title');
+                var $exits = $('#exits');
+
+
+                //emits a message to the server
+                $messageForm.submit(function(e){
+                    e.preventDefault();
+                    socket.emit('public message', {msg: 'Welcome', msgsender: 'Sam', image: 'Images/pretty.jpg'}, function(data) {
+                        console.log('message sent');
+                    });
+                    $message.val('');
+                });
+
+
+                socket.on('load old', function(docs){
+                    //loads messages starting from the last data in the database
+                    for(var i = docs.length - 1; i >= 0; i--){
+                        displayMsg(docs[i]);
+                    }
+                });
+
+                 //recieves the emitted message from the server
+                socket.on('public response', function(data){
+                    displayMsg(data);
+                });
+                
+                function displayMsg(data){
+                    $PubChat.append('<div class="well"><strong>'+ data.msgsender + ' . ' + data.image +' </strong>: ' + data.message +'</div>');
+                }
+                /*
+                $messageForm.submit(function(e){
+                e.preventDefault();
+                socket.emit('private message', $message.val(), function(data){
+                     $PriChat.append('<span class="error">' + data + "</span><br />");
+                });
+                $message.val('');
+            
+                  //recieves the emitted message from the server
+                socket.on('private response', function(data){
+                    $PriChat.append('<div class="well"><strong>'+ data.user + ' </strong>: ' + data.msg +'</div>');
+                });
+                */
+
+                $userForm.submit(function(e) {
+                    e.preventDefault();
+                    $title.html($username.val());
+                    socket.emit('new user', $username.val(), function(data){
+                        if(data){
+                            $userFormArea.hide();
+                            $messageArea.show();
+                        }
+                    });
+
+                    $username.val('');
+                });
+                
+                socket.on('exits', function(data){
+                    $userFormArea.append("<p class='exits'>" + data.massage + "</p>");
+                })
+                
+                socket.on('whisper', function(data){
+                    $PubChat.append('<span class="whisper"><b>' + data.user + ': </b>' +  data.msg + "</span><br />");
+                });
+                
+                
+                socket.on('get users', function(data){//collects the users emitted from the server side
+                    var html = '';
+
+                   for(var i = 0; i < data.length; i++) {
+
+                        //var all = data.users;
+                        //var sender = data.sender;
+    
+                            html += '<li class="list-group-item"><a id="val" href="chat/'+data[i]+'."onclick="openWindow(this.href);this.blur();return false;">' + data[i] +'</a></li>';
+                            //var lists = data[i];
+                                   
+                    }
+
+                    $users.html(html); 
+    
+                });
+                
+            });
+        </script>
+    </body>
+</html>
