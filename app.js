@@ -7,10 +7,11 @@ let server = require('http').createServer(app);
 let io = require('socket.io').listen(server);
 let debug = require('debug')('clackserver:server');
 let mongoose = require('mongoose');
+let cors = require('cors');
 
 /*
 app.use('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.json();
 });
 */
 
@@ -76,6 +77,7 @@ app.use(passport.session());
 app.use('/messages', generalMsgRouter);
 app.use('/messages/:names', privateMsgRouter);
 */
+app.use(cors());
 
 people = {};
 
@@ -86,7 +88,7 @@ connections = [];
 io.sockets.on('connection', (socket) => {
   let query = Messages.find({});
   //setting the limit of messages to fetch
-  query.sort('-created').limit(15).exec((err, docs) => {
+  query.sort('-created').limit(30).exec((err, docs) => {
       if(err) throw err;
       socket.emit('load old', docs);
   });
