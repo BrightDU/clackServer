@@ -9,11 +9,10 @@ let debug = require('debug')('clackserver:server');
 let mongoose = require('mongoose');
 let cors = require('cors');
 
-/*
-app.use('/', (req, res) => {
+
+app.get('/', (req, res) => {
   res.json();
 });
-*/
 
 
 mongoose.Promise = require('bluebird');
