@@ -11,7 +11,64 @@ let cors = require('cors');
 
 
 app.get('/', (req, res) => {
-  res.json();
+  
+  res.json({
+    
+  })
+  //open a connection with socket IO
+  io.sockets.on('connection', (socket) => {
+    let query = Messages.find({});
+    //setting the limit of messages to fetch
+    query.sort('-created').limit(200).exec((err, docs) => {
+        if(err) throw err;
+        socket.emit('load old', docs);
+    });
+
+    connections.push(socket); //pushing all connections into our connections array
+    //console.log('Connected: %s sockets connected', connections.length);
+
+    
+    //Send Messages
+    socket.on('public message', function(data){
+        //let msg = data.msg;
+        //let msgsender = data.msgsender;
+      //creates a document in the database
+        var newMsg = new Messages({
+          message: data.msg,
+          msgsender: data.msgsender,
+          image: data.image
+        });
+        newMsg.save(function(err){
+            if(err) throw err;
+            io.sockets.emit('public response', {msgsender: data.msgsender, message: data.msg, image: data.image});//emits a general message with the msg: data 
+            //console.log("Saved to the database");
+        }); 
+    });
+
+
+  /*Handles private messaging
+    joins the two url's acting as the two rooms to one socket
+    socket.on('join PM', (pm) => {
+      socket.join(pm.room1);
+      socket.join(pm.room2);
+    });
+
+    socket.on('private message', (message) => {
+        console.log(message);
+    });
+  */
+
+    socket.on('disconnect', function(data) {
+      //if(!socket.username) return;//if a username can no longer be found, hold on and remove the username
+      //users.splice(users.indexOf(socket.username), 1);//on disconnect, removes this user from the array of users
+      delete people[socket.username];
+      //updateUsernames();
+      connections.splice(connections.indexOf(socket), 1);
+      //console.log('Disconnected: %s sockets connected', connections.length);
+    });
+
+  });
+
 });
 
 
@@ -82,60 +139,6 @@ people = {};
 
 //app active 
 connections = [];
-
-//open a connection with socket IO
-io.sockets.on('connection', (socket) => {
-  let query = Messages.find({});
-  //setting the limit of messages to fetch
-  query.sort('-created').limit(30).exec((err, docs) => {
-      if(err) throw err;
-      socket.emit('load old', docs);
-  });
-
-  connections.push(socket); //pushing all connections into our connections array
-  //console.log('Connected: %s sockets connected', connections.length);
-
-  
-  //Send Messages
-  socket.on('public message', function(data){
-      //let msg = data.msg;
-      //let msgsender = data.msgsender;
-    //creates a document in the database
-      var newMsg = new Messages({
-        message: data.msg,
-        msgsender: data.msgsender,
-        image: data.image
-      });
-      newMsg.save(function(err){
-          if(err) throw err;
-          io.sockets.emit('public response', {msgsender: data.msgsender, message: data.msg, image: data.image});//emits a general message with the msg: data 
-          //console.log("Saved to the database");
-      }); 
-  });
-
-
-/*Handles private messaging
-  joins the two url's acting as the two rooms to one socket
-  socket.on('join PM', (pm) => {
-    socket.join(pm.room1);
-    socket.join(pm.room2);
-  });
-
-  socket.on('private message', (message) => {
-      console.log(message);
-  });
-*/
-
-  socket.on('disconnect', function(data) {
-    //if(!socket.username) return;//if a username can no longer be found, hold on and remove the username
-    //users.splice(users.indexOf(socket.username), 1);//on disconnect, removes this user from the array of users
-    delete people[socket.username];
-    //updateUsernames();
-    connections.splice(connections.indexOf(socket), 1);
-    //console.log('Disconnected: %s sockets connected', connections.length);
-  });
-
-});
 
 //catch 404 and forward to error handler
 app.use(function(req, res, next) {
