@@ -9,17 +9,11 @@ let debug = require('debug')('clackserver:server');
 let mongoose = require('mongoose');
 let cors = require('cors');
 
-
-app.get('/', (req, res) => {
-  
-  res.json({
-    
-  })
   //open a connection with socket IO
   io.sockets.on('connection', (socket) => {
     let query = Messages.find({});
     //setting the limit of messages to fetch
-    query.sort('-created').limit(200).exec((err, docs) => {
+    query.sort('-created').limit(100).exec((err, docs) => {
         if(err) throw err;
         socket.emit('load old', docs);
     });
@@ -68,8 +62,6 @@ app.get('/', (req, res) => {
     });
 
   });
-
-});
 
 
 mongoose.Promise = require('bluebird');
